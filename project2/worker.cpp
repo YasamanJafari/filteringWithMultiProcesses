@@ -33,8 +33,9 @@ void sendDataToPresenter(vector <vector<string> > filteredData, vector <vector <
 int main(int argc, char* argv[])
 {
     string path = "./" + to_string(getpid());
+    string finalData = "";
     mkfifo(path.c_str(), 0666); 
-    char info[READ_SIZE];
+    string info;
     vector <string> files;
     vector <pair <string, string> > filters;
     string directory;
@@ -42,7 +43,22 @@ int main(int argc, char* argv[])
     vector <vector<string> > filteredData;
     close(stoi(argv[1]));
 
-    read(stoi(argv[0]), info, READ_SIZE); 
+    char character[1];
+    while(1)
+    {
+        if(read(stoi(argv[0]), character, 1) >= 0)
+        {   
+            if(character[0] != '|')
+            {
+                finalData += character[0];
+                // cerr << "- " << readDataFile;
+                continue;
+            }
+            info = finalData;
+            break;
+        }
+    }
+
 
     close(stoi(argv[0])); 
 

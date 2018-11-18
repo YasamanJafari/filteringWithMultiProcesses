@@ -143,7 +143,7 @@ void shareDataOnWorkersPipe(vector <string> files, vector <vector<int> > fds, st
     for(int i = 0; i < fds.size(); i++)
     {
         close(fds[i][0]); //close reading endpoint
-        write(fds[i][1], data[i].c_str(), data[i].size()+1); 
+        write(fds[i][1], (data[i]+ '|' ).c_str(), data[i].size()+1); 
     }
 
     for(int i = 0; i < fds.size(); i++)
