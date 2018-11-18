@@ -83,7 +83,7 @@ void sendDataToPresenter(vector <vector<string> > filteredData, vector <vector <
     }
 
     mkfifo(path.c_str(), 0666); 
-        //cerr << "woe " << getpid() << endl;
+    //cerr << "woe " << getpid() << endl;
     fd = open(path.c_str(), O_WRONLY); 
 
     write(fd, filteredDataForPipe.c_str(), filteredDataForPipe.size()+1); 
