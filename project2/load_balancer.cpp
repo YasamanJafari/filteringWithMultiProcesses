@@ -88,8 +88,11 @@ void createPresenterPipe(vector<pair<string, string> > data, int processCount, v
 
     string sortingData = "";
 
-    if((data[data.size() - 1].second == ASCEND || data[data.size() - 1].second == DESCEND))
-        sortingData = data[data.size() - 1].first + ASSIGN + data[data.size() - 1].second;
+    if(data.size() > 0)
+    {
+        if((data[data.size() - 1].second == ASCEND || data[data.size() - 1].second == DESCEND))
+            sortingData = data[data.size() - 1].first + ASSIGN + data[data.size() - 1].second;
+    }
 
     sortingData += ("/" + to_string(processCount));
     sortingData += "@" ;
