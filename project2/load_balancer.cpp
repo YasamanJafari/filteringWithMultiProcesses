@@ -9,6 +9,7 @@
 #include <sys/stat.h> 
 #include <sys/types.h> 
 #include <fcntl.h> 
+#include <signal.h>
 
 using namespace std;
 
@@ -51,24 +52,30 @@ int main()
     string workerData;
 
     mkfifo(NAMED_PIPE_PATH, 0666); 
-    createPresenter(presenterPID);
     while(true) 
     {
         getline(cin, request);
         if(request == QUIT)
+        {
+            unlink(NAMED_PIPE_PATH);
             break;
+        }
 
         tokenizeInput(request, data, processCount, directory);
 
         if(!getFilesOfDir(directory, files)) {continue;}
 
+
         createWorkersPipes(processCount, fds);
         workerData = convertFilteringInfoToString(data);
+
+        createPresenter(presenterPID);
 
         createWorkers(processCount, workersPIDs, fds);
         createPresenterPipe(data, processCount, workersPIDs);
         shareDataOnWorkersPipe(files, fds, workerData, processCount, directory);
-        waitForChildren(workersPIDs, presenterPID);
+        waitForChildren(workersPIDs, presenterPID);  
+        workersPIDs.clear(); 
     }
 }
 
@@ -86,9 +93,10 @@ void createPresenterPipe(vector<pair<string, string> > data, int processCount, v
 
     sortingData += ("/" + to_string(processCount));
     sortingData += "@" ;
-    // cerr << "HERE : " << sortingData << endl;
+    //cerr << "HERE : " << sortingData << endl;
     for(int i = 0; i < processCount; i++)
         sortingData += (to_string(workersPIDs[i]) + " ");
+
 
     fd = open(NAMED_PIPE_PATH, O_WRONLY); 
     write(fd, sortingData.c_str(), sortingData.size()+1);

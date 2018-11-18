@@ -55,12 +55,12 @@ int main()
             pipes = dataRead.substr(dataRead.find_first_of("@") + 1);
             processCount = stoi(dataReadRemain.substr(dataReadRemain.find_first_of("/") + 1));
             close(fd); 
-            unlink(NAMED_PIPE_PATH);
             break;
         }
     }
 
     vector <string> pipeFDs;
+    pipeFDs.clear();
     string word = "";
     while(word != pipes)
     {
@@ -71,6 +71,7 @@ int main()
 
     for(int i = 0; i < processCount; i++)
     {  
+        //cerr << "hello "  << pipeFDs[i] << endl;
         mkfifo(("./" + pipeFDs[i]).c_str(), 0666); 
         fd = open(("./" + pipeFDs[i]).c_str(),O_RDONLY);
         if(read(fd, value, VAL_SIZE) >= 0)
@@ -105,6 +106,7 @@ void printResult(pair <string, string> sortVal, vector <string> result)
             cout << result[i] << endl;
         }       
     }
+    exit(0);
 }
 
 bool isInt(string data)

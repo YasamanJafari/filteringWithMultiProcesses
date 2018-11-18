@@ -32,6 +32,8 @@ void sendDataToPresenter(vector <vector<string> > filteredData, vector <vector <
 
 int main(int argc, char* argv[])
 {
+    string path = "./" + to_string(getpid());
+    mkfifo(path.c_str(), 0666); 
     char info[READ_SIZE];
     vector <string> files;
     vector <pair <string, string> > filters;
@@ -81,10 +83,12 @@ void sendDataToPresenter(vector <vector<string> > filteredData, vector <vector <
     }
 
     mkfifo(path.c_str(), 0666); 
+        //cerr << "woe " << getpid() << endl;
     fd = open(path.c_str(), O_WRONLY); 
 
     write(fd, filteredDataForPipe.c_str(), filteredDataForPipe.size()+1); 
     close(fd); 
+    exit(0);
 }
 
 vector <vector<string> > filterData(vector <vector <string> > fileData, vector <pair <string, string> > filters)
