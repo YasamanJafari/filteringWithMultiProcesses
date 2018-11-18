@@ -6,6 +6,10 @@
 #include <dirent.h>
 #include <unistd.h>
 #include <fstream>
+#include <stdio.h>
+#include <sys/stat.h> 
+#include <sys/types.h> 
+#include <fcntl.h> 
 
 #define READ_SIZE 4096
 
@@ -15,13 +19,17 @@ using namespace std;
 #define FILE_DELIMITER " "
 #define FILE_AND_FILTER_DELIMITER "*"
 #define ASSIGN "="
+#define END_CHAR "#"
 #define DIRECTORY "dir"
 
+#define NAMED_PIPE_PATH "./named_pipe"
+
 void tokenizeInput(string data, vector <string> &files, vector <pair <string, string> > &filters, string &directory);
-void printData(vector<pair<string, string> > filters, vector <string> files, string directory);
+void printReqData(vector<pair<string, string> > filters, vector <string> files, string directory);
 void readFiles(vector <string> files, string directory, vector <vector <string> > &fileData);
 void printFile(vector <vector <string> > &fileData);
 vector <vector<string> > filterData(vector <vector <string> > fileData, vector <pair <string, string> > filters);
+void sendDataToPresenter(vector <vector<string> > filteredData);
 
 int main(int argc, char* argv[])
 {
@@ -42,6 +50,36 @@ int main(int argc, char* argv[])
     readFiles(files, directory, fileData);
 
     filteredData = filterData(fileData, filters);
+
+    sendDataToPresenter(filteredData);
+}
+
+void sendDataToPresenter(vector <vector<string> > filteredData)
+{
+    int fd; 
+    
+    mkfifo(NAMED_PIPE_PATH, 0666); 
+
+    string filteredDataForPipe = "";
+
+    for(int i = 0; i < filteredData.size(); i++)
+    {
+        for(int j = 0; j < filteredData[i].size(); j++)
+        {
+            filteredDataForPipe += filteredData[i][j] + " ";
+        }
+        if(i != filteredData.size() - 1)
+            filteredDataForPipe += '\n';
+        else
+            filteredDataForPipe += END_CHAR;
+    }
+
+    fd = open(NAMED_PIPE_PATH, O_WRONLY); 
+
+    // cerr << "Worker sending... " << filteredDataForPipe << endl;
+
+    write(fd, filteredDataForPipe.c_str(), filteredDataForPipe.size()+1); 
+    close(fd); 
 }
 
 vector <vector<string> > filterData(vector <vector <string> > fileData, vector <pair <string, string> > filters)
@@ -111,7 +149,7 @@ void readFiles(vector <string> files, string directory, vector <vector <string> 
     }
 }
 
-void printData(vector<pair<string, string> > filters, vector <string> files, string directory)
+void printReqData(vector<pair<string, string> > filters, vector <string> files, string directory)
 {
     cerr << "Directory: " << directory << endl;
     cerr << "Filters: " << endl;
@@ -126,6 +164,7 @@ void printData(vector<pair<string, string> > filters, vector <string> files, str
         cerr << files[i] << endl;
     }
 }
+
 void tokenizeInput(string data, vector <string> &files, vector <pair <string, string> > &filters, string &directory)
 {
     string filterInfo, fileInfo;

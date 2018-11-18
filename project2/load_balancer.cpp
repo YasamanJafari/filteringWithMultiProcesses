@@ -5,6 +5,10 @@
 #include <vector>
 #include <dirent.h>
 #include <unistd.h>
+#include <stdio.h>
+#include <sys/stat.h> 
+#include <sys/types.h> 
+#include <fcntl.h> 
 
 using namespace std;
 
@@ -20,6 +24,8 @@ using namespace std;
 #define DELIMITER "-"
 #define ASSIGN "="
 
+#define NAMED_PIPE_PATH "./named_pipe"
+
 #define QUIT "quit"
 
 void tokenizeInput(string request, vector<pair<string, string> > &data, int &processCount, string &directory);
@@ -31,6 +37,7 @@ void waitForChildren(vector <pid_t> workersPIDs, pid_t presenterPID);
 void createWorkersPipes(int processCount, vector <vector<int> > &fds);
 void shareDataOnWorkersPipe(vector <string> files, vector <vector<int> > fds, string workerData, int processCount, string directory);
 string convertFilteringInfoToString(vector<pair<string, string> > data);
+void createPresenterPipe(vector<pair<string, string> > data, int processCount);
 
 int main()
 {
@@ -56,13 +63,36 @@ int main()
         createWorkersPipes(processCount, fds);
         workerData = convertFilteringInfoToString(data);
 
-        // createPresenter(presenterPID);
+        createPresenter(presenterPID);
+
+        createPresenterPipe(data, processCount);
+
         createWorkers(processCount, workersPIDs, fds);
 
         shareDataOnWorkersPipe(files, fds, workerData, processCount, directory);
 
         waitForChildren(workersPIDs, presenterPID);
     }
+}
+
+void createPresenterPipe(vector<pair<string, string> > data, int processCount)
+{
+    int fd; 
+    
+    //create
+    mkfifo(NAMED_PIPE_PATH, 0666); 
+
+    string sortingData = "";
+
+    if(data[data.size() - 1].second == ASCEND || data[data.size() - 1].second == DESCEND)
+        sortingData = data[data.size() - 1].first + ASSIGN + data[data.size() - 1].second;
+
+    fd = open(NAMED_PIPE_PATH, O_WRONLY); 
+
+    sortingData += ("/" + to_string(processCount));
+
+    write(fd, sortingData.c_str(), sortingData.size()+1); 
+    close(fd); 
 }
 
 string convertFilteringInfoToString(vector<pair<string, string> > data)
@@ -144,7 +174,13 @@ void createPresenter(pid_t &presenterPID)
         return;
     }  
     if(pid == 0)
-        execvp(PRESENTER_EXEC, NULL); 
+    {
+        if(execvp(PRESENTER_EXEC, NULL) < 0)
+        {
+            cerr << "Couldn't execvp for presenter" << endl; 
+        }
+    }
+
     else
         presenterPID = pid;
 }
