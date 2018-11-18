@@ -55,6 +55,7 @@ int main()
             pipes = dataRead.substr(dataRead.find_first_of("@") + 1);
             processCount = stoi(dataReadRemain.substr(dataReadRemain.find_first_of("/") + 1));
             close(fd); 
+            unlink(NAMED_PIPE_PATH);
             break;
         }
     }
@@ -80,6 +81,7 @@ int main()
             dataFromWorker.push_back(dataRead);
             sortReadData(dataFromWorker, header, sortVal, result);
         }
+        unlink(("./" + pipeFDs[i]).c_str());
         close(fd);
     } 
 

@@ -22,6 +22,7 @@ using namespace std;
 #define END_CHAR "#"
 #define DIRECTORY "dir"
 
+
 void tokenizeInput(string data, vector <string> &files, vector <pair <string, string> > &filters, string &directory);
 void printReqData(vector<pair<string, string> > filters, vector <string> files, string directory);
 void readFiles(vector <string> files, string directory, vector <vector <string> > &fileData);
