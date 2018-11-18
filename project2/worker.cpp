@@ -29,7 +29,7 @@ void printReqData(vector<pair<string, string> > filters, vector <string> files, 
 void readFiles(vector <string> files, string directory, vector <vector <string> > &fileData);
 void printFile(vector <vector <string> > &fileData);
 vector <vector<string> > filterData(vector <vector <string> > fileData, vector <pair <string, string> > filters);
-void sendDataToPresenter(vector <vector<string> > filteredData);
+void sendDataToPresenter(vector <vector<string> > filteredData, vector <vector <string> > fileData);
 
 int main(int argc, char* argv[])
 {
@@ -51,16 +51,25 @@ int main(int argc, char* argv[])
 
     filteredData = filterData(fileData, filters);
 
-    sendDataToPresenter(filteredData);
+    sendDataToPresenter(filteredData, fileData);
 }
 
-void sendDataToPresenter(vector <vector<string> > filteredData)
+void sendDataToPresenter(vector <vector<string> > filteredData, vector <vector <string> > fileData)
 {
     int fd; 
     
     mkfifo(NAMED_PIPE_PATH, 0666); 
 
     string filteredDataForPipe = "";
+
+    for(int i = 0; i < fileData[0].size(); i++)
+    {
+        filteredDataForPipe += (fileData[0][i]);
+        if(i == fileData[0].size() - 1)
+            filteredDataForPipe += "^";
+        else
+            filteredDataForPipe += " ";
+    }
 
     for(int i = 0; i < filteredData.size(); i++)
     {
@@ -75,8 +84,6 @@ void sendDataToPresenter(vector <vector<string> > filteredData)
     }
 
     fd = open(NAMED_PIPE_PATH, O_WRONLY); 
-
-    // cerr << "Worker sending... " << filteredDataForPipe << endl;
 
     write(fd, filteredDataForPipe.c_str(), filteredDataForPipe.size()+1); 
     close(fd); 
@@ -98,7 +105,7 @@ vector <vector<string> > filterData(vector <vector <string> > fileData, vector <
                         accepted = false;    
                 }
             }
-            if(accepted)
+            if(accepted && i != 0)
             {
                 accepted = false;
                 filteredData.push_back(fileData[i]);

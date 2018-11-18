@@ -84,7 +84,7 @@ void createPresenterPipe(vector<pair<string, string> > data, int processCount)
 
     string sortingData = "";
 
-    if(data[data.size() - 1].second == ASCEND || data[data.size() - 1].second == DESCEND)
+    if((data[data.size() - 1].second == ASCEND || data[data.size() - 1].second == DESCEND))
         sortingData = data[data.size() - 1].first + ASSIGN + data[data.size() - 1].second;
 
     fd = open(NAMED_PIPE_PATH, O_WRONLY); 
