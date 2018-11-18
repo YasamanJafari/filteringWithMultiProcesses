@@ -69,8 +69,6 @@ void sendDataToPresenter(vector <vector<string> > filteredData, vector <vector <
             filteredDataForPipe += " ";
     }
 
-    cerr << "HELLO " << endl;
-
     for(int i = 0; i < filteredData.size(); i++)
     {
         for(int j = 0; j < filteredData[i].size(); j++)
@@ -81,12 +79,8 @@ void sendDataToPresenter(vector <vector<string> > filteredData, vector <vector <
             filteredDataForPipe += '\n';
     }
 
-    cerr << "BYE " << endl;
-
     mkfifo(path.c_str(), 0666); 
     fd = open(path.c_str(), O_WRONLY); 
-
-    cerr << "WORKER " << filteredDataForPipe << endl;
 
     write(fd, filteredDataForPipe.c_str(), filteredDataForPipe.size()+1); 
     close(fd); 

@@ -14,14 +14,18 @@
 #define NAMED_PIPE_PATH "./named_pipe"
 
 #define VAL_SIZE 1024
+#define ASCEND "ascend"
+#define DESCEND "descend"
 
 using namespace std;
 
 int column = 0;
 
-void mergeVectors(vector <int> first, vector <int> second, vector <int> result);
-void sortReadData(vector <string> dataFromWorker, string header, pair <string, string> sortVal);
+void mergeData(vector <string> lines, vector <string> &result);
+void sortReadData(vector <string> dataFromWorker, string header, pair <string, string> sortVal, vector <string> &result);
 bool isInt(string data);
+void insertInResult(vector <string> lines, vector <string> &result);
+void printResult(pair <string, string> sortVal, vector <string> result);
 
 int main()
 {
@@ -32,10 +36,11 @@ int main()
     bool gotFromBalancer = false;
     string header, pipes;
     vector <string> dataFromWorker;
+    vector <string> result;
   
     mkfifo(NAMED_PIPE_PATH, 0666); 
 
-            fd = open(NAMED_PIPE_PATH, O_RDONLY);
+    fd = open(NAMED_PIPE_PATH, O_RDONLY);
 
     while(1)
     {
@@ -66,21 +71,38 @@ int main()
     for(int i = 0; i < processCount; i++)
     {  
         mkfifo(("./" + pipeFDs[i]).c_str(), 0666); 
-        cerr << "START " << endl;
         fd = open(("./" + pipeFDs[i]).c_str(),O_RDONLY);
-        cerr << "END " << endl;
         if(read(fd, value, VAL_SIZE) >= 0)
         {   
-            cerr << "READING..." << endl;
             string dataRead = value;
             header = dataRead.substr(0, dataRead.find_first_of("^"));
             dataRead = dataRead.substr(dataRead.find_first_of("^") + 1);
             dataFromWorker.push_back(dataRead);
-            sortReadData(dataFromWorker, header, sortVal);
+            sortReadData(dataFromWorker, header, sortVal, result);
         }
         close(fd);
     } 
+
+    printResult(sortVal, result);
     return 0; 
+}
+
+void printResult(pair <string, string> sortVal, vector <string> result)
+{
+    if(sortVal.second == DESCEND)
+    {
+        for(int i = result.size() - 1; i >= 0; i--)
+        {
+            cout << result[i] << endl;
+        }
+    }
+    else
+    {
+        for(int i = 0; i < result.size(); i++)
+        {
+            cout << result[i] << endl;
+        }       
+    }
 }
 
 bool isInt(string data)
@@ -115,7 +137,7 @@ bool compare(string first, string second)
     return firstTokens[column] < secondTokens[column];
 }
 
-void sortReadData(vector <string> dataFromWorker, string header, pair <string, string> sortVal)
+void sortReadData(vector <string> dataFromWorker, string header, pair <string, string> sortVal, vector <string> &result)
 {
     vector <string> headerTokens;
     string token = "";
@@ -142,28 +164,68 @@ void sortReadData(vector <string> dataFromWorker, string header, pair <string, s
             column = i;
 
     sort(lines.begin(), lines.end(), compare);
+    mergeData(lines, result);
 
-    for(int i = 0; i < lines.size(); i++)
-    {
-        cerr << lines[i] << endl;
-    }
 }
 
-void mergeVectors(vector <int> first, vector <int> second, vector <int> result)
+void insertInResult(string line, vector <string> &result)
 {
-    int i = 0, j = 0, k = 0; 
-  
-    while (i < first.size() && j < second.size()) 
-    { 
-        if (first[i] < second[j]) 
-            result[k++] = first[i++]; 
+    vector <string> lineWords, temp;
+    string completeLine = line;
+    string token = "";
+    while(token != line)
+    {
+        token = line.substr(0, line.find_first_of(" "));
+        line = line.substr(line.find_first_of(" ") + 1);
+        lineWords.push_back(token);          
+    }
+    for(int i = 0; i < result.size(); i++)
+    {
+        temp.clear();
+        string tempResult = result[i];
+        token = "";
+        while(token != tempResult)
+        {
+            token = tempResult.substr(0, tempResult.find_first_of(" "));
+            tempResult = tempResult.substr(tempResult.find_first_of(" ") + 1);
+            temp.push_back(token);          
+        }
+        if(isInt(lineWords[column]))
+        {
+            if(stoi(lineWords[column]) < stoi(temp[column]))
+            {
+                // cerr << "INSERTING NUM" << endl;
+                result.insert(result.begin() + i, completeLine);
+                return;
+            }
+        }
         else
-            result[k++] = second[j++]; 
-    } 
-  
-    while (i < first.size()) 
-        result[k++] = first[i++]; 
-   
-    while (j < second.size()) 
-        result[k++] = second[j++]; 
-} 
+        {
+            if((lineWords[column]) < (temp[column]))
+            {
+                // cerr << "INSERTING STR " << endl;
+                result.insert(result.begin() + i, completeLine);
+                return;
+            }
+        }
+    }
+    result.push_back(completeLine);
+}
+
+void mergeData(vector <string> lines, vector <string> &result)
+{
+    if(result.size() == 0)
+    {
+        for(int i = 0; i < lines.size(); i++)
+            result.push_back(lines[i]);
+    }
+
+    else
+    {
+        for(int i = 0; i < lines.size(); i++)
+        {
+            // cerr << "@@@ " << lines[i] << " " << result.size() << endl;
+            insertInResult(lines[i], result);
+        }
+    }
+}
