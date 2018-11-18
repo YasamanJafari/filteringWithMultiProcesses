@@ -80,10 +80,11 @@ void sendDataToPresenter(vector <vector<string> > filteredData, vector <vector <
         }
         if(i != filteredData.size() - 1)
             filteredDataForPipe += '\n';
+        else
+            filteredDataForPipe += '|';
     }
 
     mkfifo(path.c_str(), 0666); 
-    //cerr << "woe " << getpid() << endl;
     fd = open(path.c_str(), O_WRONLY); 
 
     write(fd, filteredDataForPipe.c_str(), filteredDataForPipe.size()+1); 

@@ -31,6 +31,7 @@ int main()
 {
     int fd; 
     char value[VAL_SIZE];
+    string readDataFile = "";
     pair <string, string> sortVal;
     int processCount;
     bool gotFromBalancer = false;
@@ -69,18 +70,30 @@ int main()
         pipeFDs.push_back(word);
     }
 
+    char character[1];
     for(int i = 0; i < processCount; i++)
     {  
         //cerr << "hello "  << pipeFDs[i] << endl;
         mkfifo(("./" + pipeFDs[i]).c_str(), 0666); 
         fd = open(("./" + pipeFDs[i]).c_str(),O_RDONLY);
-        if(read(fd, value, VAL_SIZE) >= 0)
-        {   
-            string dataRead = value;
-            header = dataRead.substr(0, dataRead.find_first_of("^"));
-            dataRead = dataRead.substr(dataRead.find_first_of("^") + 1);
-            dataFromWorker.push_back(dataRead);
-            sortReadData(dataFromWorker, header, sortVal, result);
+        while(true)
+        {
+            if(read(fd, character, 1) >= 0)
+            {   
+                if(character[0] != '|')
+                {
+                    readDataFile += character[0];
+                    // cerr << "- " << readDataFile;
+                    continue;
+                }
+                string dataRead = readDataFile;
+                header = dataRead.substr(0, dataRead.find_first_of("^"));
+                dataRead = dataRead.substr(dataRead.find_first_of("^") + 1);
+                dataFromWorker.push_back(dataRead);
+                sortReadData(dataFromWorker, header, sortVal, result);
+                readDataFile = "";
+                break;
+            }
         }
         unlink(("./" + pipeFDs[i]).c_str());
         close(fd);
