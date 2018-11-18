@@ -20,9 +20,11 @@ using namespace std;
 #define DELIMITER "-"
 #define ASSIGN "="
 
+#define QUIT "quit"
+
 void tokenizeInput(string request, vector<pair<string, string> > &data, int &processCount, string &directory);
 void printData(vector<pair<string, string> > &data);
-void getFilesOfDir(string name, vector <string> &files);
+bool getFilesOfDir(string name, vector <string> &files);
 void createWorkers(int processCount, vector <pid_t> &workersPIDs, vector <vector<int> > &fds);
 void createPresenter(pid_t &presenterPID);
 void waitForChildren(vector <pid_t> workersPIDs, pid_t presenterPID);
@@ -41,34 +43,40 @@ int main()
     int processCount;
     string workerData;
 
-    getline(cin, request);
+    while(true) 
+    {
+        getline(cin, request);
+        if(request == QUIT)
+            break;
 
-    tokenizeInput(request, data, processCount, directory);
-    getFilesOfDir(directory, files);
+        tokenizeInput(request, data, processCount, directory);
 
-    createWorkersPipes(processCount, fds);
-    workerData = convertFilteringInfoToString(data);
+        if(!getFilesOfDir(directory, files)) {continue;}
 
-    // createPresenter(presenterPID);
-    createWorkers(processCount, workersPIDs, fds);
+        createWorkersPipes(processCount, fds);
+        workerData = convertFilteringInfoToString(data);
 
+        // createPresenter(presenterPID);
+        createWorkers(processCount, workersPIDs, fds);
 
-    shareDataOnWorkersPipe(files, fds, workerData, processCount, directory);
+        shareDataOnWorkersPipe(files, fds, workerData, processCount, directory);
 
-    waitForChildren(workersPIDs, presenterPID);
-
-    while(true) {}
+        waitForChildren(workersPIDs, presenterPID);
+    }
 }
 
 string convertFilteringInfoToString(vector<pair<string, string> > data)
 {
     string dataToBeSent = "";
-    int indexLimit = ((data[data.size() - 1].second == ASCEND || data[data.size() - 1].second == DESCEND) ? data.size() - 1 : data.size()); //not sending the sort part 
-    for(int i = 0; i < indexLimit; i++)
+    if(data.size() != 0)
     {
-        dataToBeSent = dataToBeSent + data[i].first + ASSIGN + data[i].second;
-        if(i != indexLimit - 1)
-            dataToBeSent += DELIMITER;
+        int indexLimit = ((data[data.size() - 1].second == ASCEND || data[data.size() - 1].second == DESCEND) ? data.size() - 1 : data.size()); //not sending the sort part 
+        for(int i = 0; i < indexLimit; i++)
+        {
+            dataToBeSent = dataToBeSent + data[i].first + ASSIGN + data[i].second;
+            if(i != indexLimit - 1)
+                dataToBeSent += DELIMITER;
+        }
     }
     return dataToBeSent;
 }
@@ -77,7 +85,13 @@ void shareDataOnWorkersPipe(vector <string> files, vector <vector<int> > fds, st
 {   
     vector <string> data;
     for(int i = 0; i < processCount; i++)
-        data.push_back(workerData + DELIMITER + DIRECTORY + ASSIGN + directory + "*");
+    {
+        string allData = "";
+        if(workerData != "")
+            allData += workerData + DELIMITER;
+        allData += ("dir=" + directory + "*");
+        data.push_back(allData);
+    }
     
     int j = 0;
     for(int i = 0; i < files.size(); i++)
@@ -157,7 +171,7 @@ void createWorkers(int processCount, vector <pid_t> &workersPIDs, vector <vector
     }
 }
 
-void getFilesOfDir(string name, vector <string> &files)
+bool getFilesOfDir(string name, vector <string> &files)
 {
     int len;
     DIR* dirp;
@@ -166,7 +180,10 @@ void getFilesOfDir(string name, vector <string> &files)
 
     dirp = opendir(name.c_str());
     if (dirp == NULL) 
-       cerr << "Cannot open directory" << name << endl;
+    {
+       cerr << "Cannot open directory " << name << endl;
+       return false;
+    }
 
     while ((dp = readdir(dirp)) != NULL) 
     {
@@ -175,6 +192,7 @@ void getFilesOfDir(string name, vector <string> &files)
             files.push_back(fileName);
     }
     closedir (dirp);
+    return true;
 }
 
 void printData(vector<pair<string, string> > &data)

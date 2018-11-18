@@ -7,18 +7,21 @@
 #include <unistd.h>
 #include <fstream>
 
-#define READ_SIZE 1024
+#define READ_SIZE 4096
 
 using namespace std;
 
 #define DELIMITER "-"
+#define FILE_DELIMITER " "
 #define FILE_AND_FILTER_DELIMITER "*"
 #define ASSIGN "="
 #define DIRECTORY "dir"
 
 void tokenizeInput(string data, vector <string> &files, vector <pair <string, string> > &filters, string &directory);
 void printData(vector<pair<string, string> > filters, vector <string> files, string directory);
-void readFiles(vector <string> files, string directory);
+void readFiles(vector <string> files, string directory, vector <vector <string> > &fileData);
+void printFile(vector <vector <string> > &fileData);
+vector <vector<string> > filterData(vector <vector <string> > fileData, vector <pair <string, string> > filters);
 
 int main(int argc, char* argv[])
 {
@@ -26,6 +29,8 @@ int main(int argc, char* argv[])
     vector <string> files;
     vector <pair <string, string> > filters;
     string directory;
+    vector <vector <string> > fileData;
+    vector <vector<string> > filteredData;
     close(stoi(argv[1]));
 
     read(stoi(argv[0]), info, READ_SIZE); 
@@ -34,24 +39,75 @@ int main(int argc, char* argv[])
 
     tokenizeInput(info, files, filters, directory);
 
-    readFiles(files, directory);
+    readFiles(files, directory, fileData);
+
+    filteredData = filterData(fileData, filters);
 }
 
-void readFiles(vector <string> files, string directory)
+vector <vector<string> > filterData(vector <vector <string> > fileData, vector <pair <string, string> > filters)
 {
+    vector <vector<string> > filteredData;
+    for(int i = 0; i < fileData.size(); i++)
+    {
+        bool accepted = true;
+        for(int j = 0; j < filters.size(); j++)
+        {
+            for(int k = 0; k < fileData[0].size(); k++)
+            {
+                if(fileData[0][k] == filters[j].first)
+                {
+                    if(fileData[i][k] != filters[j].second)
+                        accepted = false;    
+                }
+            }
+            if(accepted)
+            {
+                accepted = false;
+                filteredData.push_back(fileData[i]);
+            }
+        }
+    }
+    return filteredData;
+}
+
+void printFile(vector <vector <string> > &fileData)
+{
+    for(int i = 0; i < fileData.size(); i++)
+    {
+        for(int j = 0; j < fileData[i].size(); j++)
+            cerr << fileData[i][j] << " ";
+        cerr << endl;
+    }
+}
+
+void readFiles(vector <string> files, string directory, vector <vector <string> > &fileData)
+{
+    fileData.clear();
     for(int i = 0; i < files.size(); i++)
     {
-        string line;
+        string line, word;
+        vector <string> lineData;
         ifstream myFile(directory + "/" + files[i]);
         if (myFile.is_open())
         {
-        while (getline(myFile,line))
-        {
-            cout << line << '\n';
+            int lineCount = 0;
+            word = "";
+            while (getline(myFile,line))
+            {
+                lineData.clear();
+                while (word != line)
+                {
+                    word = line.substr(0, line.find_first_of(FILE_DELIMITER));
+                    line = line.substr(line.find_first_of(FILE_DELIMITER) + 1);
+                    lineData.push_back(word);
+                }
+                lineCount++;
+                fileData.push_back(lineData);
+            }
+            myFile.close();
         }
-        myFile.close();
-        }
-        else cerr << "Unable to open file" << endl; 
+        else 
+            cerr << "Unable to open file." << endl; 
     }
 }
 
