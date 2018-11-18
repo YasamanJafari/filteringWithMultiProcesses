@@ -73,12 +73,13 @@ int main()
     char character[1];
     for(int i = 0; i < processCount; i++)
     {  
-        //cerr << "hello "  << pipeFDs[i] << endl;
+        // cerr << "hello "  << i << endl;
         mkfifo(("./" + pipeFDs[i]).c_str(), 0666); 
         fd = open(("./" + pipeFDs[i]).c_str(),O_RDONLY);
         while(true)
         {
-            if(read(fd, character, 1) >= 0)
+            int byte = read(fd, character, 1);
+            if(byte > 0)
             {   
                 if(character[0] != '|')
                 {
@@ -90,6 +91,7 @@ int main()
                 header = dataRead.substr(0, dataRead.find_first_of("^"));
                 dataRead = dataRead.substr(dataRead.find_first_of("^") + 1);
                 dataFromWorker.push_back(dataRead);
+                // cerr << "** " << readDataFile << endl;
                 sortReadData(dataFromWorker, header, sortVal, result);
                 readDataFile = "";
                 break;
@@ -99,12 +101,14 @@ int main()
         close(fd);
     } 
 
+    pipeFDs.clear();
     printResult(sortVal, result);
     return 0; 
 }
 
 void printResult(pair <string, string> sortVal, vector <string> result)
 {
+    //cerr << "### " << result.size() << endl;
     if(sortVal.second == DESCEND)
     {
         for(int i = result.size() - 1; i >= 0; i--)
@@ -173,7 +177,7 @@ void sortReadData(vector <string> dataFromWorker, string header, pair <string, s
     {
         line = dataFromWorker[len].substr(0, dataFromWorker[len].find_first_of("\n"));
         dataFromWorker[len] = dataFromWorker[len].substr(dataFromWorker[len].find_first_of("\n") + 1);
-        lines.push_back(line);     
+        lines.push_back(line);    
     }
 
     for(int i = 0; i < headerTokens.size(); i++)
@@ -182,7 +186,6 @@ void sortReadData(vector <string> dataFromWorker, string header, pair <string, s
 
     sort(lines.begin(), lines.end(), compare);
     mergeData(lines, result);
-
 }
 
 void insertInResult(string line, vector <string> &result)

@@ -96,12 +96,14 @@ void sendDataToPresenter(vector <vector<string> > filteredData, vector <vector <
         }
         if(i != filteredData.size() - 1)
             filteredDataForPipe += '\n';
-        else
-            filteredDataForPipe += '|';
     }
+
+    filteredDataForPipe += '|';
 
     mkfifo(path.c_str(), 0666); 
     fd = open(path.c_str(), O_WRONLY); 
+
+    // cerr << filteredDataForPipe << endl;
 
     write(fd, filteredDataForPipe.c_str(), filteredDataForPipe.size()+1); 
     close(fd); 
@@ -111,24 +113,33 @@ void sendDataToPresenter(vector <vector<string> > filteredData, vector <vector <
 vector <vector<string> > filterData(vector <vector <string> > fileData, vector <pair <string, string> > filters)
 {
     vector <vector<string> > filteredData;
-    for(int i = 0; i < fileData.size(); i++)
+
+    vector<bool> accepted;
+    accepted.push_back(false);
+    for(int i = 1; i < fileData.size(); i++)
+        accepted.push_back(true);
+    for(int i = 1; i < fileData.size(); i++)
     {
-        bool accepted = true;
-        for(int j = 0; j < filters.size(); j++)
+        for(int k = 0; k < fileData[0].size(); k++)
         {
-            for(int k = 0; k < fileData[0].size(); k++)
-            {
+            for(int j = 0; j < filters.size(); j++)
+            { 
                 if(fileData[0][k] == filters[j].first)
                 {
                     if(fileData[i][k] != filters[j].second)
-                        accepted = false;    
+                        accepted[i] = false;  
+                    break;
                 }
             }
-            if(accepted && i != 0)
-            {
-                accepted = false;
-                filteredData.push_back(fileData[i]);
-            }
+        }
+    }
+    for(int i = 1; i < fileData.size(); i++)
+    {   
+        if(accepted[i])
+        {
+            // printTest(fileData[i]);
+            // cerr << "FINALLY! " << endl;
+            filteredData.push_back(fileData[i]);
         }
     }
     return filteredData;
