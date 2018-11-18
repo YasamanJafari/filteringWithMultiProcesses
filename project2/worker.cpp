@@ -22,8 +22,6 @@ using namespace std;
 #define END_CHAR "#"
 #define DIRECTORY "dir"
 
-#define NAMED_PIPE_PATH "./named_pipe"
-
 void tokenizeInput(string data, vector <string> &files, vector <pair <string, string> > &filters, string &directory);
 void printReqData(vector<pair<string, string> > filters, vector <string> files, string directory);
 void readFiles(vector <string> files, string directory, vector <vector <string> > &fileData);
@@ -58,7 +56,7 @@ void sendDataToPresenter(vector <vector<string> > filteredData, vector <vector <
 {
     int fd; 
     
-    mkfifo(NAMED_PIPE_PATH, 0666); 
+    string path = "./" + to_string(getpid());
 
     string filteredDataForPipe = "";
 
@@ -71,6 +69,8 @@ void sendDataToPresenter(vector <vector<string> > filteredData, vector <vector <
             filteredDataForPipe += " ";
     }
 
+    cerr << "HELLO " << endl;
+
     for(int i = 0; i < filteredData.size(); i++)
     {
         for(int j = 0; j < filteredData[i].size(); j++)
@@ -79,11 +79,14 @@ void sendDataToPresenter(vector <vector<string> > filteredData, vector <vector <
         }
         if(i != filteredData.size() - 1)
             filteredDataForPipe += '\n';
-        else
-            filteredDataForPipe += END_CHAR;
     }
 
-    fd = open(NAMED_PIPE_PATH, O_WRONLY); 
+    cerr << "BYE " << endl;
+
+    mkfifo(path.c_str(), 0666); 
+    fd = open(path.c_str(), O_WRONLY); 
+
+    cerr << "WORKER " << filteredDataForPipe << endl;
 
     write(fd, filteredDataForPipe.c_str(), filteredDataForPipe.size()+1); 
     close(fd); 

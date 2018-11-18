@@ -20,7 +20,7 @@ using namespace std;
 int column = 0;
 
 void mergeVectors(vector <int> first, vector <int> second, vector <int> result);
-void sortData(vector <string> dataFromWorker, string header, pair <string, string> sortVal);
+void sortReadData(vector <string> dataFromWorker, string header, pair <string, string> sortVal);
 bool isInt(string data);
 
 int main()
@@ -30,39 +30,55 @@ int main()
     pair <string, string> sortVal;
     int processCount;
     bool gotFromBalancer = false;
-    string header;
+    string header, pipes;
     vector <string> dataFromWorker;
   
     mkfifo(NAMED_PIPE_PATH, 0666); 
 
-    while (1) 
+            fd = open(NAMED_PIPE_PATH, O_RDONLY);
+
+    while(1)
+    {
+        if(read(fd, value, VAL_SIZE) > 0)
+        {
+            string dataRead = value;
+            string sortData = dataRead.substr(0, dataRead.find_first_of("/"));
+            dataRead = dataRead.substr(dataRead.find_first_of("/") + 1);
+            sortVal.first = sortData.substr(0, sortData.find_first_of("="));
+            sortVal.second = sortData.substr(sortData.find_first_of("=") + 1);
+            string dataReadRemain = dataRead.substr(0, dataRead.find_first_of("@"));
+            pipes = dataRead.substr(dataRead.find_first_of("@") + 1);
+            processCount = stoi(dataReadRemain.substr(dataReadRemain.find_first_of("/") + 1));
+            close(fd); 
+            break;
+        }
+    }
+
+    vector <string> pipeFDs;
+    string word = "";
+    while(word != pipes)
+    {
+        word = pipes.substr(0, pipes.find_first_of(" "));
+        pipes = pipes.substr(pipes.find_first_of(" ") + 1);
+        pipeFDs.push_back(word);
+    }
+
+    for(int i = 0; i < processCount; i++)
     {  
-        fd = open(NAMED_PIPE_PATH,O_RDONLY);
-        if(read(fd, value, VAL_SIZE) >= 0 && gotFromBalancer)
+        mkfifo(("./" + pipeFDs[i]).c_str(), 0666); 
+        cerr << "START " << endl;
+        fd = open(("./" + pipeFDs[i]).c_str(),O_RDONLY);
+        cerr << "END " << endl;
+        if(read(fd, value, VAL_SIZE) >= 0)
         {   
+            cerr << "READING..." << endl;
             string dataRead = value;
             header = dataRead.substr(0, dataRead.find_first_of("^"));
             dataRead = dataRead.substr(dataRead.find_first_of("^") + 1);
             dataFromWorker.push_back(dataRead);
-            sortData(dataFromWorker, header, sortVal);
-
-            // cerr << dataRead << endl;
-            // cerr << "HEADER : " << header << endl;
+            sortReadData(dataFromWorker, header, sortVal);
         }
-
-        if(!gotFromBalancer)
-        {
-            string dataRead = value;
-            string sortData = dataRead.substr(0, dataRead.find_first_of("/"));
-            sortVal.first = sortData.substr(0, sortData.find_first_of("="));
-            sortVal.second = sortData.substr(sortData.find_first_of("=") + 1);
-            processCount = stoi(dataRead.substr(dataRead.find_first_of("/") + 1));
-            gotFromBalancer = true;
-
-            // cerr << sortVal.first << " " << sortVal.second << " " << processCount << endl;
-        }
-  
-        close(fd); 
+        close(fd);
     } 
     return 0; 
 }
@@ -99,7 +115,7 @@ bool compare(string first, string second)
     return firstTokens[column] < secondTokens[column];
 }
 
-void sortData(vector <string> dataFromWorker, string header, pair <string, string> sortVal)
+void sortReadData(vector <string> dataFromWorker, string header, pair <string, string> sortVal)
 {
     vector <string> headerTokens;
     string token = "";
@@ -127,10 +143,10 @@ void sortData(vector <string> dataFromWorker, string header, pair <string, strin
 
     sort(lines.begin(), lines.end(), compare);
 
-    // for(int i = 0; i < lines.size(); i++)
-    // {
-    //     cerr << lines[i] << endl;
-    // }
+    for(int i = 0; i < lines.size(); i++)
+    {
+        cerr << lines[i] << endl;
+    }
 }
 
 void mergeVectors(vector <int> first, vector <int> second, vector <int> result)

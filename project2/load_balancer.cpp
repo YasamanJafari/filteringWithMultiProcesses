@@ -37,7 +37,7 @@ void waitForChildren(vector <pid_t> workersPIDs, pid_t presenterPID);
 void createWorkersPipes(int processCount, vector <vector<int> > &fds);
 void shareDataOnWorkersPipe(vector <string> files, vector <vector<int> > fds, string workerData, int processCount, string directory);
 string convertFilteringInfoToString(vector<pair<string, string> > data);
-void createPresenterPipe(vector<pair<string, string> > data, int processCount);
+void createPresenterPipe(vector<pair<string, string> > data, int processCount, vector <pid_t> workersPIDs);
 
 int main()
 {
@@ -50,6 +50,8 @@ int main()
     int processCount;
     string workerData;
 
+    mkfifo(NAMED_PIPE_PATH, 0666); 
+    createPresenter(presenterPID);
     while(true) 
     {
         getline(cin, request);
@@ -63,19 +65,14 @@ int main()
         createWorkersPipes(processCount, fds);
         workerData = convertFilteringInfoToString(data);
 
-        createPresenter(presenterPID);
-
-        createPresenterPipe(data, processCount);
-
         createWorkers(processCount, workersPIDs, fds);
-
+        createPresenterPipe(data, processCount, workersPIDs);
         shareDataOnWorkersPipe(files, fds, workerData, processCount, directory);
-
         waitForChildren(workersPIDs, presenterPID);
     }
 }
 
-void createPresenterPipe(vector<pair<string, string> > data, int processCount)
+void createPresenterPipe(vector<pair<string, string> > data, int processCount, vector <pid_t> workersPIDs)
 {
     int fd; 
     
@@ -87,11 +84,14 @@ void createPresenterPipe(vector<pair<string, string> > data, int processCount)
     if((data[data.size() - 1].second == ASCEND || data[data.size() - 1].second == DESCEND))
         sortingData = data[data.size() - 1].first + ASSIGN + data[data.size() - 1].second;
 
-    fd = open(NAMED_PIPE_PATH, O_WRONLY); 
-
     sortingData += ("/" + to_string(processCount));
+    sortingData += "@" ;
+    // cerr << "HERE : " << sortingData << endl;
+    for(int i = 0; i < processCount; i++)
+        sortingData += (to_string(workersPIDs[i]) + " ");
 
-    write(fd, sortingData.c_str(), sortingData.size()+1); 
+    fd = open(NAMED_PIPE_PATH, O_WRONLY); 
+    write(fd, sortingData.c_str(), sortingData.size()+1);
     close(fd); 
 }
 
